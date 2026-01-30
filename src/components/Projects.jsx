@@ -84,6 +84,17 @@ export default function Projects() {
       github: "https://github.com/Khusanboyevr/trading.git",
       demo: "https://tradinng.netlify.app/",
       image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800",
+    },
+    {
+      id: 7,
+      title: "Worldty",
+      minDescription: "Worldty — Dunyo mamlakatlari haqida to'liq ma'lumot beruvchi interfaol platforma.",
+      description: "Bayroqlar, aholi soni, mintaqalar va boshqa ko'plab qiziqarli ma'lumotlar bilan boyitilgan interfaol platforma. Foydalanuvchilar qidiruv va filtrlash orqali mamlakatlar haqida batafsil ma'lumot olishlari mumkin.",
+      startYear: "2025", endYear: "2025",
+      tags: ["React", "TailwindCSS", "Rest API"],
+      github: "https://github.com/Khusanboyevr/countries-about.git",
+      demo: "https://worldty.netlify.app/",
+      image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fworldty.netlify.app%2F?w=1200&h=800",
     }
   ];
 

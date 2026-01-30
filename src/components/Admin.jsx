@@ -21,6 +21,36 @@ export default function Admin() {
         chatId: "6112428725"
     });
 
+    const IMAGE_PRESETS = [
+        // Web
+        { name: "Web 1", category: "Web", url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80" },
+        { name: "Web 2", category: "Web", url: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80" },
+        { name: "Web 3", category: "Web", url: "https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=800&q=80" },
+        { name: "Web 4", category: "Web", url: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=800&q=80" },
+        { name: "Web 5", category: "Web", url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80" },
+
+        // App
+        { name: "App 1", category: "App", url: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=800&q=80" },
+        { name: "App 2", category: "App", url: "https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&q=80" },
+        { name: "App 3", category: "App", url: "https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=800&q=80" },
+        { name: "App 4", category: "App", url: "https://images.unsplash.com/photo-1523474253046-2cd2c78b6ad1?auto=format&fit=crop&w=800&q=80" },
+        { name: "App 5", category: "App", url: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80" },
+
+        // Dashboard
+        { name: "Dash 1", category: "Dashboard", url: "https://images.unsplash.com/photo-1551288049-bbbda536339a?auto=format&fit=crop&w=800&q=80" },
+        { name: "Dash 2", category: "Dashboard", url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80" },
+        { name: "Dash 3", category: "Dashboard", url: "https://images.unsplash.com/photo-1543286386-713bdd548da4?auto=format&fit=crop&w=800&q=80" },
+        { name: "Dash 4", category: "Dashboard", url: "https://images.unsplash.com/photo-1504868584819-f8e90526354c?auto=format&fit=crop&w=800&q=80" },
+        { name: "Dash 5", category: "Dashboard", url: "https://images.unsplash.com/photo-1518186239751-dc0d6727d99a?auto=format&fit=crop&w=800&q=80" },
+
+        // E-commerce
+        { name: "Shop 1", category: "E-commerce", url: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=800&q=80" },
+        { name: "Shop 2", category: "E-commerce", url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80" },
+        { name: "Shop 3", category: "E-commerce", url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80" },
+        { name: "Shop 4", category: "E-commerce", url: "https://images.unsplash.com/photo-1556742044-3c52d6e88c62?auto=format&fit=crop&w=800&q=80" },
+        { name: "Shop 5", category: "E-commerce", url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80" }
+    ];
+
     // Notifications
     const [notification, setNotification] = useState(null);
 
@@ -165,6 +195,16 @@ export default function Admin() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const generateScreenshot = () => {
+        if (!formData.demo) {
+            showNotification("Avval Demo URL kiritishingiz kerak", "error");
+            return;
+        }
+        const url = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(formData.demo)}?w=1200&h=800`;
+        setFormData({ ...formData, image: url });
+        showNotification("Screenshot generatsiya qilindi!");
+    };
+
     const handleCancelEdit = () => {
         setEditingId(null);
         setFormData({ title: "", minDescription: "", description: "", tags: "", github: "", demo: "", image: "", startYear: new Date().getFullYear().toString(), endYear: "Hozirgacha" });
@@ -209,7 +249,8 @@ export default function Admin() {
                 { title: "Akademnashr", minDescription: "Nashriyot uyi sayti", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/akademnashr.git", demo: "https://akademnashrmy.netlify.app", image: "https://akademnashrmy.netlify.app/og-image.png" },
                 { title: "Shortening API", minDescription: "URL qisqartiruvchi servis", tags: ["Node.js", "React"], github: "https://github.com/Khusanboyevr/shortening-api.git", demo: "https://rahmatillo-shortterining.netlify.app", image: "https://rahmatillo-shortterining.netlify.app/og-image.png" },
                 { title: "Tojikiston", minDescription: "Tojikiston turizm platformasi", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/tojikiston.git", demo: "https://tojikiston.netlify.app", image: "https://tojikiston.netlify.app/og-image.png" },
-                { title: "Trading", minDescription: "Trading platformasi dashboardi", tags: ["React", "Chart.js"], github: "https://github.com/Khusanboyevr/trading.git", demo: "https://tradinng.netlify.app/", image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800" }
+                { title: "Trading", minDescription: "Trading platformasi dashboardi", tags: ["React", "Chart.js"], github: "https://github.com/Khusanboyevr/trading.git", demo: "https://tradinng.netlify.app/", image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800" },
+                { title: "Worldty", minDescription: "Davlatlar haqida ma'lumot platformasi", tags: ["React", "TailwindCSS", "Rest API"], github: "https://github.com/Khusanboyevr/countries-about.git", demo: "https://worldty.netlify.app/", image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fworldty.netlify.app%2F?w=1200&h=800" }
             ];
 
             for (const proj of initialSamples) {
@@ -388,7 +429,12 @@ export default function Admin() {
 
                                     {!editingId && (
                                         <div>
-                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Loyiha Rasmi</label>
+                                            <div className="flex justify-between items-end mb-1">
+                                                <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Loyiha Rasmi</label>
+                                                <button type="button" onClick={generateScreenshot} className="text-[10px] text-blue-500 font-bold hover:underline mb-1">
+                                                    Demosidan olish
+                                                </button>
+                                            </div>
                                             <div className="mt-1 space-y-3">
                                                 {formData.image && (
                                                     <div className="relative w-full h-40 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800 shadow-inner group">
@@ -398,6 +444,28 @@ export default function Admin() {
                                                         </button>
                                                     </div>
                                                 )}
+
+                                                {/* Presets */}
+                                                <div className="space-y-3 mb-2 p-3 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl border border-gray-100 dark:border-zinc-800">
+                                                    {["Web", "App", "Dashboard", "E-commerce"].map(cat => (
+                                                        <div key={cat} className="space-y-1">
+                                                            <span className="text-[9px] font-black uppercase text-gray-400 ml-1">{cat}</span>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {IMAGE_PRESETS.filter(p => p.category === cat).map(preset => (
+                                                                    <button
+                                                                        key={preset.name}
+                                                                        type="button"
+                                                                        onClick={() => setFormData({ ...formData, image: preset.url })}
+                                                                        className="px-2 py-1 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-700 rounded-lg text-[10px] font-bold dark:text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-all"
+                                                                    >
+                                                                        {preset.name.split(" ")[1]}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
                                                 <div className="flex gap-2">
                                                     <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} className="flex-1 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
                                                     <input placeholder="Yoki URL manzil..." value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} className="flex-[1.5] p-2.5 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white text-xs outline-none focus:border-blue-500" />
