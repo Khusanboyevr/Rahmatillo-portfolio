@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import GlassCards from "./projects/GlassCards";
 import MasonryGrid from "./projects/MasonryGrid";
 import { db } from "../lib/firebase";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
+import ansorImg from "../assets/projects/ansor_med.png";
+import shortenerImg from "../assets/projects/shortener.png";
+import akademImg from "../assets/projects/akademnashr.png";
+import foodImg from "../assets/projects/food_app.png";
+import tojikistonImg from "../assets/projects/tojikiston.png";
 
 export default function Projects() {
   const { t } = useTranslation();
@@ -14,15 +20,70 @@ export default function Projects() {
 
   const SAMPLE = [
     {
-      id: 0,
-      title: "Istiqbol Luck",
-      minDescription: "Istiqbol Luck — xususiy maktab uchun ishlab chiqilgan zamonaviy rasmiy web sayt. ",
-      description: "Istiqbol Luck — xususiy maktab uchun ishlab chiqilgan zamonaviy rasmiy web sayt.",
-      startYear: "2026", endYear: "2026",
+      id: 1,
+      title: "Ansor Med",
+      minDescription: "Ansor Med — tibbiyot markazi uchun maxsus ishlab chiqilgan premium platforma. Barcha tibbiy xizmatlar bir joyda.",
+      description: "Ansor Med tibbiyot markazi uchun zamonaviy va qulay platforma. Foydalanuvchilar shifokorlar ko'rigiga yozilishi va xizmatlar haqida to'liq ma'lumot olishlari mumkin.",
+      startYear: "2025", endYear: "2025",
+      tags: ["React", "TailwindCSS", "Framer Motion"],
+      github: "https://github.com/Khusanboyevr/ansor.git",
+      demo: "https://ansormedn.netlify.app/",
+      image: ansorImg,
+    },
+    {
+      id: 2,
+      title: "Akademnashr",
+      minDescription: "Akademnashr — nashriyot uyi uchun yaratilgan zamonaviy web-sayt. Kitoblar olamiga xush kelibsiz.",
+      description: "Akademnashr nashriyoti uchun ishlab chiqilgan platforma. Kitoblar katalogi, yangiliklar va nashriyot faoliyati haqida batafsil ma'lumot.",
+      startYear: "2025", endYear: "2025",
       tags: ["React", "TailwindCSS"],
-      github: "https://github.com/soliyevdoston/istiqbolluck-v0.2",
-      demo: "https://www.istiqbolluck.uz/",
-      image: "https://www.istiqbolluck.uz/og-image.png",
+      github: "https://github.com/Khusanboyevr/akademnashr.git",
+      demo: "https://akademnashrmy.netlify.app",
+      image: akademImg,
+    },
+    {
+      id: 3,
+      title: "Shortening API",
+      minDescription: "URL Shortener — uzun havolalarni qisqartirish va ularni boshqarish uchun texnologik yechim.",
+      description: "Uzun havolalarni soniyalar ichida qisqartiruvchi va statistikani kuzatuvchi servis. API orqali boshqa servislar bilan integratsiya imkoniyati.",
+      startYear: "2025", endYear: "2025",
+      tags: ["React", "Node.js", "Express"],
+      github: "https://github.com/Khusanboyevr/shortening-api.git",
+      demo: "https://rahmatillo-shortterining.netlify.app",
+      image: shortenerImg,
+    },
+    {
+      id: 4,
+      title: "Premium Food",
+      minDescription: "Food delivery app — taom yetkazib berish xizmati uchun zamonaviy va interaktiv interfeys.",
+      description: "Restoranlar va mijozlarni bog'lovchi qulay interfeysli taom yetkazib berish ilovasi. Silliq animatsiyalar va foydalanuvchiga qulay dizayn.",
+      startYear: "2025", endYear: "2025",
+      tags: ["React", "TailwindCSS", "Framer Motion"],
+      github: "",
+      demo: "https://bucolic-gaufre-266faa.netlify.app",
+      image: foodImg,
+    },
+    {
+      id: 5,
+      title: "Tojikiston",
+      minDescription: "Tojikiston — Tojikistonning go'zal tabiati va madaniyati haqida ma'lumot beruvchi interfaol platforma.",
+      description: "Tojikistonning turistik salohiyati, tog'lari, ko'llari va boy tarixi haqida ma'lumot beruvchi zamonaviy web-sayt. Foydalanuvchilar uchun qulay navigatsiya va vizual boy dizayn.",
+      startYear: "2025", endYear: "2025",
+      tags: ["React", "TailwindCSS"],
+      github: "https://github.com/Khusanboyevr/tojikiston.git",
+      demo: "https://tojikiston.netlify.app",
+      image: tojikistonImg,
+    },
+    {
+      id: 6,
+      title: "Trading",
+      minDescription: "Zamonaviy trading platformasi dashboardi",
+      description: "Candlestick grafiklar, texnik tahlil indikatorlari va portfel boshqaruvi bilan jihozlangan professional trading interfeysi. Dark mode va qulay UX dizayn.",
+      startYear: "2025", endYear: "2025",
+      tags: ["React", "Chart.js", "TailwindCSS"],
+      github: "https://github.com/Khusanboyevr/trading.git",
+      demo: "https://tradinng.netlify.app/",
+      image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800",
     }
   ];
 
@@ -38,7 +99,9 @@ export default function Projects() {
         const fetched = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (fetched.length > 0) {
-          setProjectsList(fetched);
+          // Merge fetched projects with SAMPLE projects, avoiding duplicates by title
+          const sampleFiltered = SAMPLE.filter(s => !fetched.some(f => f.title === s.title));
+          setProjectsList([...fetched, ...sampleFiltered]);
         } else {
           setProjectsList(SAMPLE);
         }
@@ -83,7 +146,28 @@ export default function Projects() {
 
         <section className="relative">
           {loading ? (
-            <div className="h-[60vh] flex items-center justify-center dark:text-white">{t("projects.loading")}</div>
+            <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"
+              />
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+                className="text-gray-500 dark:text-zinc-400 text-sm font-medium tracking-widest uppercase"
+              >
+                {t("projects.loading")}
+              </motion.p>
+            </div>
           ) : (
             <>
               {active === "glass" && (

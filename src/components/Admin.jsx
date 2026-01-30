@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { db, auth, storage } from "../lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc, getDoc, setDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaPlus, FaTrash, FaSignOutAlt, FaCog, FaCheckCircle, FaExclamationCircle, FaCopy, FaEye, FaEyeSlash, FaHome, FaEdit, FaTimes, FaDatabase, FaTelegram } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 export default function Admin() {
     const [user, setUser] = useState(null);
@@ -11,6 +14,20 @@ export default function Admin() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [activeTab, setActiveTab] = useState("projects"); // projects | settings
+    const [editingId, setEditingId] = useState(null);
+    const [telegramConfig, setTelegramConfig] = useState({
+        botToken: "7857475586:AAEA1yRlY1QXtaqnbD6eHUGCgPhBjf0naBI",
+        chatId: "6112428725"
+    });
+
+    // Notifications
+    const [notification, setNotification] = useState(null);
+
+    const showNotification = (msg, type = "success") => {
+        setNotification({ msg, type });
+        setTimeout(() => setNotification(null), 4000);
+    };
 
     // Form state
     const [formData, setFormData] = useState({
@@ -27,27 +44,54 @@ export default function Admin() {
 
     const [imageFile, setImageFile] = useState(null);
 
+    // Settings state
+    const [newEmail, setNewEmail] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [showPass, setShowPass] = useState(false);
+
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
             setUser(u);
-            if (u) fetchProjects();
+            if (u) {
+                fetchProjects();
+                fetchTelegramConfig();
+                setNewEmail(u.email);
+            }
             setLoading(false);
         });
         return () => unsub();
     }, []);
 
+    const fetchTelegramConfig = async () => {
+        try {
+            const docRef = doc(db, "settings", "telegram");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setTelegramConfig(docSnap.data());
+            }
+        } catch (err) {
+            console.error("Config fetch error:", err);
+        }
+    };
+
     const fetchProjects = async () => {
-        const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        setProjects(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        try {
+            const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            setProjects(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (err) {
+            showNotification(err.message, "error");
+        }
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
             await signInWithEmailAndPassword(auth, email, password);
+            showNotification("Xush kelibsiz!");
         } catch (err) {
-            alert("Login xatosi: " + err.message);
+            showNotification("Login xatosi: " + err.message, "error");
         }
     };
 
@@ -57,207 +101,440 @@ export default function Admin() {
         try {
             let imageUrl = formData.image;
 
-            if (imageFile) {
-                const storageRef = ref(storage, `projects/${Date.now()}_${imageFile.name}`);
-                const snapshot = await uploadBytes(storageRef, imageFile);
-                imageUrl = await getDownloadURL(snapshot.ref);
+            // Only process image if NOT editing (new project)
+            if (!editingId) {
+                if (imageFile) {
+                    const storageRef = ref(storage, `projects/${Date.now()}_${imageFile.name}`);
+                    const snapshot = await uploadBytes(storageRef, imageFile);
+                    imageUrl = await getDownloadURL(snapshot.ref);
+                }
+
+                if (!imageUrl && formData.demo) {
+                    imageUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(formData.demo)}?w=1200&h=800`;
+                }
+
+                if (!imageUrl) {
+                    showNotification("Iltimos, rasm yuklang yoki URL kiriting", "error");
+                    setUploading(false);
+                    return;
+                }
             }
 
-            if (!imageUrl && formData.demo) {
-                // Use WordPress MShot as a backup/auto-generate
-                imageUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(formData.demo)}?w=1200&h=800`;
-            }
-
-            if (!imageUrl) {
-                alert("Iltimos, rasm yuklang, URL kiriting yoki Demo linkini yozing");
-                setUploading(false);
-                return;
-            }
-
-            await addDoc(collection(db, "projects"), {
+            const projectData = {
                 ...formData,
                 image: imageUrl,
-                tags: formData.tags.split(",").map(t => t.trim()),
-                createdAt: new Date()
-            });
+                tags: typeof formData.tags === 'string' ? formData.tags.split(",").map(t => t.trim()) : formData.tags,
+                updatedAt: new Date()
+            };
 
-            alert("Loyiha qo'shildi!");
-            setFormData({ title: "", minDescription: "", description: "", tags: "", github: "", demo: "", image: "", startYear: "2024", endYear: "Hozirgacha" });
+            if (editingId) {
+                await updateDoc(doc(db, "projects", editingId), projectData);
+                showNotification("Loyiha yangilandi!");
+            } else {
+                await addDoc(collection(db, "projects"), {
+                    ...projectData,
+                    createdAt: new Date()
+                });
+                showNotification("Loyiha qo'shildi!");
+            }
+
+            setFormData({ title: "", minDescription: "", description: "", tags: "", github: "", demo: "", image: "", startYear: new Date().getFullYear().toString(), endYear: "Hozirgacha" });
             setImageFile(null);
+            setEditingId(null);
             fetchProjects();
         } catch (err) {
-            alert("Xato: " + err.message);
+            showNotification("Xato: " + err.message, "error");
         } finally {
             setUploading(false);
         }
     };
 
-    const generatePreview = () => {
-        if (formData.demo) {
-            const previewUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(formData.demo)}?w=1200&h=800`;
-            setFormData({ ...formData, image: previewUrl });
-        } else {
-            alert("Avval Demo linkini kiriting");
+    const handleEdit = (proj) => {
+        setEditingId(proj.id);
+        setFormData({
+            title: proj.title || "",
+            minDescription: proj.minDescription || "",
+            description: proj.description || "",
+            tags: Array.isArray(proj.tags) ? proj.tags.join(", ") : proj.tags || "",
+            github: proj.github || "",
+            demo: proj.demo || "",
+            image: proj.image || "",
+            startYear: proj.startYear || new Date().getFullYear().toString(),
+            endYear: proj.endYear || "Hozirgacha"
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setFormData({ title: "", minDescription: "", description: "", tags: "", github: "", demo: "", image: "", startYear: new Date().getFullYear().toString(), endYear: "Hozirgacha" });
+        setImageFile(null);
+    };
+
+    const handleUpdateCredentials = async (e) => {
+        e.preventDefault();
+        if (!currentPassword) {
+            showNotification("O'zgarishlarni saqlash uchun joriy parolni kiriting", "error");
+            return;
+        }
+
+        try {
+            const credential = EmailAuthProvider.credential(user.email, currentPassword);
+            await reauthenticateWithCredential(user, credential);
+
+            if (newEmail !== user.email) {
+                await updateEmail(user, newEmail);
+            }
+            if (newPassword) {
+                await updatePassword(user, newPassword);
+            }
+
+            showNotification("Ma'lumotlar muvaffaqiyatli yangilandi!");
+            setCurrentPassword("");
+            setNewPassword("");
+        } catch (err) {
+            showNotification("Xato: " + err.message, "error");
+        }
+    };
+
+    const handleSeedProjects = async () => {
+        if (!window.confirm("Barcha namunaviy loyihalarni bazaga yuklashni tasdiqlaysizmi? (Bu dublikat loyihalar yaratishi mumkin)")) return;
+
+        setUploading(true);
+        try {
+            // Normally we'd import this from Projects.jsx, but since it's inside the component, 
+            // we'll define the core data here for seeding.
+            const initialSamples = [
+                { title: "Ansor Med", minDescription: "Tibbiyot markazi platformasi", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/ansor.git", demo: "https://ansormedn.netlify.app/", image: "https://ansormedn.netlify.app/og-image.png" },
+                { title: "Akademnashr", minDescription: "Nashriyot uyi sayti", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/akademnashr.git", demo: "https://akademnashrmy.netlify.app", image: "https://akademnashrmy.netlify.app/og-image.png" },
+                { title: "Shortening API", minDescription: "URL qisqartiruvchi servis", tags: ["Node.js", "React"], github: "https://github.com/Khusanboyevr/shortening-api.git", demo: "https://rahmatillo-shortterining.netlify.app", image: "https://rahmatillo-shortterining.netlify.app/og-image.png" },
+                { title: "Tojikiston", minDescription: "Tojikiston turizm platformasi", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/tojikiston.git", demo: "https://tojikiston.netlify.app", image: "https://tojikiston.netlify.app/og-image.png" },
+                { title: "Trading", minDescription: "Trading platformasi dashboardi", tags: ["React", "Chart.js"], github: "https://github.com/Khusanboyevr/trading.git", demo: "https://tradinng.netlify.app/", image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800" }
+            ];
+
+            for (const proj of initialSamples) {
+                // Check if project already exists in current list
+                const exists = projects.some(p => p.title === proj.title);
+                if (!exists) {
+                    await addDoc(collection(db, "projects"), {
+                        ...proj,
+                        description: proj.minDescription,
+                        startYear: "2025",
+                        endYear: "2025",
+                        createdAt: new Date()
+                    });
+                }
+            }
+            showNotification("Loyiha namunalari yuklandi (mavjud bo'lmaganlari)!");
+            fetchProjects();
+        } catch (err) {
+            showNotification("Xato: " + err.message, "error");
+        } finally {
+            setUploading(false);
         }
     };
 
     const handleDelete = async (id) => {
         if (window.confirm("Loyihani o'chirishni xohlaysizmi?")) {
-            await deleteDoc(doc(db, "projects", id));
-            fetchProjects();
+            try {
+                await deleteDoc(doc(db, "projects", id));
+                showNotification("Loyiha o'chirildi");
+                fetchProjects();
+            } catch (err) {
+                showNotification(err.message, "error");
+            }
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center dark:text-white font-medium">Yuklanmoqda...</div>;
+    if (loading) return (
+        <div className="min-h-screen flex flex-col items-center justify-center dark:bg-[#09090b]">
+            <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4"
+            />
+            <p className="dark:text-white font-medium animate-pulse">Yuklanmoqda...</p>
+        </div>
+    );
 
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50 dark:bg-[#09090b]">
-                <form onSubmit={handleLogin} className="w-full max-w-md bg-white dark:bg-zinc-900 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-zinc-800">
-                    <h1 className="text-2xl font-bold mb-6 dark:text-white text-center">Admin Login</h1>
-                    <div className="space-y-4">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-md bg-white dark:bg-zinc-900 p-8 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-zinc-800"
+                >
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <FaCog className="text-3xl text-blue-500 animate-spin-slow" />
+                        </div>
+                        <h1 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Admin Login</h1>
+                    </div>
+
+                    <form onSubmit={handleLogin} className="space-y-4">
                         <input
                             type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-                            className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full p-4 rounded-xl border-2 border-gray-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:border-blue-500 transition-all"
                         />
-                        <input
-                            type="password" placeholder="Parol" value={password} onChange={e => setPassword(e.target.value)}
-                            className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 active:scale-[0.98]">Kirish</button>
+                        <div className="relative">
+                            <input
+                                type={showPass ? "text" : "password"} placeholder="Parol" value={password} onChange={e => setPassword(e.target.value)}
+                                className="w-full p-4 rounded-xl border-2 border-gray-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:border-blue-500 transition-all"
+                            />
+                            <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                {showPass ? <FaEyeSlash /> : <FaEye />}
+                            </button>
+                        </div>
+                        <button className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-xl shadow-blue-500/20 active:scale-[0.98]">
+                            Kirish
+                        </button>
+                    </form>
+                </motion.div>
+                {notification && (
+                    <div className={`fixed bottom-8 px-6 py-3 rounded-2xl text-white font-bold shadow-2xl flex items-center gap-3 z-50 ${notification.type === "error" ? "bg-red-500" : "bg-green-500"}`}>
+                        {notification.type === "error" ? <FaExclamationCircle /> : <FaCheckCircle />}
+                        {notification.msg}
                     </div>
-                </form>
+                )}
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen p-6 pt-24 bg-gray-50 dark:bg-[#09090b]">
+        <div className="min-h-screen p-6 pt-24 bg-gray-50 dark:bg-[#09090b] transition-colors duration-500">
+            {/* Notification */}
+            <AnimatePresence>
+                {notification && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 50 }}
+                        className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-white font-bold shadow-2xl flex items-center gap-3 z-50 ${notification.type === "error" ? "bg-red-500" : "bg-green-500"}`}
+                    >
+                        {notification.type === "error" ? <FaExclamationCircle /> : <FaCheckCircle />}
+                        {notification.msg}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold dark:text-white">Loyiha Boshqaruvi</h1>
-                        <p className="text-gray-500 text-sm mt-1">Yangi loyihalar qo'shish va boshqarish</p>
-                    </div>
-                    <button onClick={() => signOut(auth)} className="px-5 py-2 bg-red-500/10 text-red-500 rounded-xl font-bold hover:bg-red-500/20 transition">Chiqish</button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    {/* Add Form */}
-                    <form onSubmit={handleAddProject} className="space-y-4 bg-white dark:bg-zinc-900 p-7 rounded-3xl shadow-lg border border-gray-100 dark:border-zinc-800 h-fit">
-                        <h2 className="text-xl font-bold mb-4 dark:text-white">Yangi Loyiha Qo'shish</h2>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase tracking-wider">Loyiha Nomi</label>
-                                <input placeholder="Masalan: Portfolio Site" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase tracking-wider">Loyiha Rasmi</label>
-                                <div className="space-y-3">
-                                    {formData.image && (
-                                        <div className="relative w-full h-32 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800 mb-2">
-                                            <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
-                                            <button type="button" onClick={() => setFormData({ ...formData, image: "" })} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600 transition-colors">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    )}
-                                    <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} className="w-full p-2.5 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
-                                    <div className="flex items-center gap-4">
-                                        <hr className="flex-1 dark:border-zinc-800" />
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">yoki URL</span>
-                                        <hr className="flex-1 dark:border-zinc-800" />
-                                    </div>
-                                    <input placeholder="https://..." value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase tracking-wider">Qisqa Tavsif</label>
-                                <textarea placeholder="Loyiha haqida qisqacha..." required value={formData.minDescription} onChange={e => setFormData({ ...formData, minDescription: e.target.value })} className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white h-24 outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm" />
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase tracking-wider">Texnologiyalar (vergul bilan)</label>
-                                <input placeholder="React, Tailwind, Firebase" required value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase tracking-wider">GitHub</label>
-                                    <input placeholder="GitHub URL" value={formData.github} onChange={e => setFormData({ ...formData, github: e.target.value })} className="w-full p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase tracking-wider">Demo</label>
-                                    <div className="flex gap-2">
-                                        <input placeholder="Demo URL" value={formData.demo} onChange={e => setFormData({ ...formData, demo: e.target.value })} className="flex-1 p-3 rounded-xl border dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
-                                        <button type="button" onClick={generatePreview} className="px-3 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500/20 transition-all text-[10px] font-bold uppercase tracking-tight">Rasm yaratish</button>
-                                    </div>
-                                </div>
-                            </div>
+                        <h1 className="text-4xl font-black dark:text-white tracking-tighter uppercase italic flex items-center gap-3">
+                            <span className="w-8 h-8 bg-blue-500 rounded-lg"></span>
+                            Admin Panel
+                        </h1>
+                        <div className="flex gap-4 mt-4">
+                            <button
+                                onClick={() => setActiveTab("projects")}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "projects" ? "bg-blue-500 text-white" : "bg-white dark:bg-zinc-900 text-gray-500"}`}
+                            >
+                                Loyihalar
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("settings")}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "settings" ? "bg-blue-500 text-white" : "bg-white dark:bg-zinc-900 text-gray-500"}`}
+                            >
+                                Sozlamalar
+                            </button>
                         </div>
-
-                        <button disabled={uploading} className="group relative w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all disabled:bg-gray-400 overflow-hidden shadow-xl shadow-blue-500/25 active:scale-[0.98] mt-4">
-                            <span className="relative z-10 flex items-center justify-center gap-2">
-                                {uploading ? (
-                                    <>
-                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Saqlanmoqda...
-                                    </>
-                                ) : "Loyiha Qo'shish"}
-                            </span>
+                    </div>
+                    <div className="flex gap-3">
+                        <Link to="/" className="p-3 bg-white dark:bg-zinc-900 text-gray-500 rounded-xl hover:text-black dark:hover:text-white transition shadow-sm border border-gray-100 dark:border-zinc-800">
+                            <FaHome />
+                        </Link>
+                        <button onClick={() => signOut(auth)} className="flex items-center gap-2 px-5 py-3 bg-red-500/10 text-red-500 rounded-xl font-bold hover:bg-red-500/20 transition group">
+                            <FaSignOutAlt className="group-hover:translate-x-1 transition-transform" />
+                            Chiqish
                         </button>
-                    </form>
+                    </div>
+                </header>
 
-                    {/* Project List */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-bold mb-4 dark:text-white">Mavjud Loyihalar ({projects.length})</h2>
-                        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-3 custom-scrollbar">
-                            {projects.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-zinc-900 rounded-3xl border border-dashed border-gray-300 dark:border-zinc-800 text-center px-6">
-                                    <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="font-bold dark:text-white">Hech narsa topilmadi</h3>
-                                    <p className="text-sm text-gray-500 mt-1">Hali bitta ham loyiha qo'shilmadi. Birinchi loyihangizni yarating!</p>
+                <AnimatePresence mode="wait">
+                    {activeTab === "projects" ? (
+                        <motion.div
+                            key="projects"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="grid grid-cols-1 lg:grid-cols-2 gap-10"
+                        >
+                            {/* Add Form */}
+                            <form onSubmit={handleAddProject} className="space-y-5 bg-white dark:bg-zinc-900 p-8 rounded-[2rem] shadow-xl border border-gray-100 dark:border-zinc-800 h-fit">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h2 className="text-xl font-bold dark:text-white flex items-center gap-2">
+                                        {editingId ? <FaEdit className="text-blue-500 text-sm" /> : <FaPlus className="text-blue-500 text-sm" />}
+                                        {editingId ? "Loyihani Tahrirlash" : "Yangi Loyiha"}
+                                    </h2>
+                                    {editingId && (
+                                        <button type="button" onClick={handleCancelEdit} className="text-gray-400 hover:text-red-500 transition-colors">
+                                            <FaTimes />
+                                        </button>
+                                    )}
                                 </div>
-                            ) : (
-                                projects.map(proj => (
-                                    <div key={proj.id} className="group flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
-                                        <div className="flex items-center gap-5">
-                                            <div className="relative w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
-                                                <img src={proj.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold dark:text-white text-base">{proj.title}</h3>
-                                                <div className="flex flex-wrap gap-2 mt-1.5">
-                                                    {proj.tags.slice(0, 3).map((t, idx) => (
-                                                        <span key={idx} className="text-[9px] font-bold px-2 py-0.5 bg-blue-500/5 text-blue-600 dark:text-blue-400 rounded-lg">{t}</span>
-                                                    ))}
-                                                    {proj.tags.length > 3 && <span className="text-[9px] text-gray-400">+{proj.tags.length - 3}</span>}
+
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Sarlavha</label>
+                                            <input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full p-3 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Texnologiyalar</label>
+                                            <input placeholder="React, Tailwind" value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} className="w-full p-3 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                        </div>
+                                    </div>
+
+                                    {!editingId && (
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Loyiha Rasmi</label>
+                                            <div className="mt-1 space-y-3">
+                                                {formData.image && (
+                                                    <div className="relative w-full h-40 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800 shadow-inner group">
+                                                        <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
+                                                        <button type="button" onClick={() => setFormData({ ...formData, image: "" })} className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all">
+                                                            <FaTrash size={12} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} className="flex-1 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+                                                    <input placeholder="Yoki URL manzil..." value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} className="flex-[1.5] p-2.5 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white text-xs outline-none focus:border-blue-500" />
                                                 </div>
                                             </div>
                                         </div>
-                                        <button onClick={() => handleDelete(proj.id)} className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-500/5 rounded-2xl transition-all">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
+                                    )}
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Qisqa Tavsif</label>
+                                        <textarea required value={formData.minDescription} onChange={e => setFormData({ ...formData, minDescription: e.target.value })} className="w-full p-3 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white h-24 outline-none focus:border-blue-500 resize-none" />
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">GitHub</label>
+                                            <input value={formData.github} onChange={e => setFormData({ ...formData, github: e.target.value })} className="w-full p-3 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Demo</label>
+                                            <input value={formData.demo} onChange={e => setFormData({ ...formData, demo: e.target.value })} className="w-full p-3 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button disabled={uploading} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-xl shadow-blue-500/20 active:scale-[0.98]">
+                                    {uploading ? "Saqlanmoqda..." : (editingId ? "O'zgarishlarni Saqlash" : "Loyihani Saqlash")}
+                                </button>
+                            </form>
+
+                            {/* List */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-xl font-bold dark:text-white">Loyihalar ({projects.length})</h2>
+                                    <button
+                                        onClick={handleSeedProjects}
+                                        disabled={uploading}
+                                        className="text-[10px] flex items-center gap-2 px-3 py-1.5 bg-zinc-200 dark:bg-zinc-800 dark:text-gray-400 rounded-lg hover:bg-blue-500 hover:text-white transition-all font-black uppercase tracking-widest"
+                                    >
+                                        <FaDatabase size={10} /> Namunalarini Yuklash
+                                    </button>
+                                </div>
+                                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                                    {projects.map(proj => (
+                                        <motion.div
+                                            layout
+                                            key={proj.id}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="group flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-3xl border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-2xl transition-all duration-300"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-gray-100 dark:border-zinc-800">
+                                                    <img src={proj.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold dark:text-white leading-tight">{proj.title}</h3>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <button onClick={() => { navigator.clipboard.writeText(proj.demo); showNotification("Link nusxalandi!"); }} className="text-gray-400 hover:text-blue-500 transition-colors"><FaCopy size={12} /></button>
+                                                        <span className="text-[10px] text-gray-400 font-medium">{proj.tags?.[0]}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleEdit(proj)} className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl hover:bg-blue-500 hover:text-white transition-all">
+                                                    <FaEdit />
+                                                </button>
+                                                <button onClick={() => handleDelete(proj.id)} className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all">
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="settings"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="max-w-2xl mx-auto"
+                        >
+                            <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] shadow-xl border border-gray-100 dark:border-zinc-800">
+                                <h2 className="text-2xl font-black mb-6 dark:text-white flex items-center gap-3 italic tracking-tighter">
+                                    <FaCog className="text-blue-500" /> Hisob Sozlamalari
+                                </h2>
+
+                                <form onSubmit={handleUpdateCredentials} className="space-y-6">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Yangi Email</label>
+                                            <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full p-4 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Yangi Parol (O'zgartirmaslik uchun bo'sh qoldiring)</label>
+                                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full p-4 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div className="pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                            <label className="text-[10px] font-black text-blue-500 ml-1 uppercase">Joriy Parol (O'zgarishlarni tasdiqlash uchun)</label>
+                                            <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full p-4 rounded-xl border-2 border-blue-100 dark:bg-black dark:border-blue-900 dark:text-white outline-none focus:border-blue-500 shadow-inner" />
+                                        </div>
+                                    </div>
+
+                                    <button className="w-full py-4 bg-black dark:bg-white dark:text-black text-white rounded-2xl font-bold hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98]">
+                                        Yangilashlarni Saqlash
+                                    </button>
+                                </form>
+
+                                <div className="mt-12 pt-8 border-t border-gray-100 dark:border-zinc-800">
+                                    <h2 className="text-2xl font-black mb-6 dark:text-white flex items-center gap-3 italic tracking-tighter">
+                                        <FaTelegram className="text-blue-400" /> Telegram Sozlamalari
+                                    </h2>
+                                    <form onSubmit={handleUpdateTelegram} className="space-y-6">
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Bot Token</label>
+                                                <input required type="text" value={telegramConfig.botToken} onChange={e => setTelegramConfig({ ...telegramConfig, botToken: e.target.value })} placeholder="7449520976:AAHe_Ait9iP4Uj6WOfFOfNlYj73_BvD6X8o" className="w-full p-4 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Chat ID</label>
+                                                <input required type="text" value={telegramConfig.chatId} onChange={e => setTelegramConfig({ ...telegramConfig, chatId: e.target.value })} placeholder="6571597816" className="w-full p-4 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white outline-none focus:border-blue-500" />
+                                            </div>
+                                        </div>
+                                        <button disabled={uploading} className="w-full py-4 bg-blue-500 text-white rounded-2xl font-bold hover:scale-[1.02] transition-all shadow-xl active:scale-[0.98] flex items-center justify-center gap-2">
+                                            <FaTelegram /> {uploading ? "Saqlanmoqda..." : "Telegramni Saqlash"}
+                                        </button>
+                                    </form>
+                                    <p className="mt-4 text-[10px] text-gray-400 italic">
+                                        BotFather orqali bot oching va userinfobot orqali chat idingizni oling.
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

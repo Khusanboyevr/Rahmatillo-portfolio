@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import profile from "../assets/personal.jpg";
 import { Link } from "react-router-dom";
-import { FaGithub, FaEnvelope, FaFileAlt, FaArrowRight } from "react-icons/fa";
+import { FaGithub, FaEnvelope, FaArrowRight, FaFileAlt } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Meteors } from "@/components/ui/meteors";
@@ -100,6 +100,7 @@ export default function Main() {
                   {t("hero.cta_projects")}
                 </ShimmerButton>
               </Link>
+
               <motion.div
                 whileHover="hover"
                 initial="initial"
@@ -138,16 +139,22 @@ export default function Main() {
               {[
                 { icon: <FaGithub />, link: "https://github.com/Khusanboyevr" },
                 { icon: <FaEnvelope />, link: "mailto:web20100101@gmail.com" },
-                { icon: <FaFileAlt />, link: "/resume.pdf" }
+                { icon: <FaFileAlt />, link: "/resume" }
               ].map((item, i) => (
-                <a
+                <Link
                   key={i}
+                  to={item.link.startsWith("http") || item.link.startsWith("mailto") ? "#" : item.link}
+                  onClick={(e) => {
+                    if (item.link.startsWith("http") || item.link.startsWith("mailto")) {
+                      e.preventDefault();
+                      window.open(item.link, "_blank", "noreferrer");
+                    }
+                  }}
                   href={item.link}
                   className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-transparent hover:border-blue-500/30 text-gray-400 dark:text-zinc-400 hover:text-blue-500 transition-all duration-300 shadow-sm"
-                  target="_blank" rel="noreferrer"
                 >
                   <span className="text-sm">{item.icon}</span>
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -158,13 +165,24 @@ export default function Main() {
             animate={{ opacity: 1, scale: 1 }}
             className="relative order-1 lg:order-2"
           >
-            <div className="relative w-56 h-56 sm:w-64 sm:h-64 lg:w-72 lg:h-72">
-              <div className="absolute inset-[-10px] rounded-[32px] border border-blue-500/5 rotate-3 -z-10"></div>
-              <div className="w-full h-full rounded-[28px] overflow-hidden shadow-xl border-2 border-white dark:border-zinc-900">
+            <div className="relative w-56 h-56 sm:w-64 sm:h-64 lg:w-72 lg:h-72 group">
+              {/* Rotating border - minimalist */}
+              <div
+                className="absolute inset-[-3px] rounded-[30px] animate-spin-slow"
+                style={{
+                  background: 'conic-gradient(from 0deg, transparent, #3b82f6, transparent, transparent)'
+                }}
+              ></div>
+
+              {/* Static border */}
+              <div className="absolute inset-[-1px] rounded-[29px] border border-gray-200 dark:border-zinc-800"></div>
+
+              {/* Image container */}
+              <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-white dark:bg-zinc-900">
                 <img
                   src={profile}
                   alt="Rahmatillo"
-                  className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>
             </div>

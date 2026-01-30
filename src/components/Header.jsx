@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,44 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const { t, i18n } = useTranslation();
+
+  const langTimeoutRef = useRef(null);
+  const menuTimeoutRef = useRef(null);
+
+  // Auto-hide language dropdown after 6 seconds
+  useEffect(() => {
+    if (langOpen) {
+      langTimeoutRef.current = setTimeout(() => {
+        setLangOpen(false);
+      }, 6000);
+    }
+    return () => clearTimeout(langTimeoutRef.current);
+  }, [langOpen]);
+
+  // Auto-hide mobile menu after 6 seconds
+  useEffect(() => {
+    if (open) {
+      menuTimeoutRef.current = setTimeout(() => {
+        setOpen(false);
+      }, 6000);
+    }
+    return () => clearTimeout(menuTimeoutRef.current);
+  }, [open]);
+
+  // Reset timer on interaction
+  const resetLangTimer = () => {
+    clearTimeout(langTimeoutRef.current);
+    langTimeoutRef.current = setTimeout(() => {
+      setLangOpen(false);
+    }, 6000);
+  };
+
+  const resetMenuTimer = () => {
+    clearTimeout(menuTimeoutRef.current);
+    menuTimeoutRef.current = setTimeout(() => {
+      setOpen(false);
+    }, 6000);
+  };
 
   const navLinks = [
     { to: "/", label: t("nav.home") },
@@ -38,7 +76,9 @@ export default function Header() {
      after:origin-left ${isActive ? "after:w-full" : "after:w-0 hover:after:w-full"}`;
 
   return (
-    <header className="sticky top-0 z-50 px-4 py-3 dark:bg-[#09090b]/50 transition-colors duration-500 backdrop-blur-md">
+    <header className="sticky top-0 z-50 px-4 py-3 bg-white/70 dark:bg-[#09090b]/70 transition-colors duration-500 backdrop-blur-xl border-b border-gray-200/50 dark:border-zinc-800/50 shadow-sm">
+      {/* Gradient glow line at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <Link to="/" className="relative group">
           <div className="absolute -inset-[1px] bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
@@ -75,6 +115,8 @@ export default function Header() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
+                  onMouseEnter={resetLangTimer}
+                  onTouchStart={resetLangTimer}
                   className="absolute right-0 mt-2 w-20 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-xl shadow-xl p-1 overflow-hidden"
                 >
                   {languages.map((l) => (
@@ -114,6 +156,8 @@ export default function Header() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
+            onMouseEnter={resetMenuTimer}
+            onTouchStart={resetMenuTimer}
             className="absolute right-4 top-[65px] w-[200px] md:hidden flex flex-col gap-2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl rounded-2xl p-4 shadow-xl border border-gray-100 dark:border-zinc-800"
           >
             {navLinks.map((n) => (

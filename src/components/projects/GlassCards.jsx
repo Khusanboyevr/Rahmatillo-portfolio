@@ -132,77 +132,99 @@ export default function VerticalFullScreenSlider({ projects }) {
           initial="enter"
           animate="center"
           exit="exit"
-          className="relative w-full flex flex-col items-center pb-20 sm:pb-0"
+          className="relative w-full max-w-2xl mx-auto flex items-center justify-center px-4 min-h-[85vh] py-12"
         >
-          {/* IMAGE - O'lchamlar saqlab qolindi */}
-          <div className="mt-[3vh] w-full flex justify-center px-4 flex-shrink-0">
-            <img
-              src={projects[index].image}
-              alt={projects[index].title}
-              className="w-full max-w-5xl h-auto max-h-[40vh] sm:max-h-[55vh] object-contain rounded-3xl shadow-2xl dark:border dark:border-zinc-800"
-            />
-          </div>
+          {/* UNIFIED COMPACT GRID UNIT */}
+          <div className="w-full grid grid-cols-1 bg-white/5 dark:bg-zinc-900/60 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden border border-white/10 dark:border-zinc-800/50 shadow-2xl">
 
-          {/* INFO CARD - O'lchamlar va stil saqlandi, dark mode qo'shildi */}
-          <div className="relative mt-4 w-full max-w-5xl bg-white dark:bg-zinc-900/90 dark:backdrop-blur-md rounded-2xl shadow-xl px-5 py-3 mx-4 flex flex-col gap-2 border border-gray-100 dark:border-zinc-800 flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-zinc-100">
-                {projects[index].title}
-              </h2>
-              <span className="text-sm text-gray-500 dark:text-zinc-400">
-                {projects[index].startYear} / {projects[index].endYear}
-              </span>
+            {/* IMAGE SECTION: Aspect-ratio based to 'only take necessary space' */}
+            <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-[16/8] bg-[#050505] overflow-hidden flex items-center justify-center group border-b border-white/5 dark:border-zinc-800/50">
+              {/* Subtle Grid Pattern Overlay for the 'Big Black Space' */}
+              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.07] pointer-events-none"
+                style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+
+              {/* Blurred Glow behind image */}
+              <div
+                className="absolute inset-0 opacity-20 blur-3xl scale-110"
+                style={{
+                  backgroundImage: `url(${projects[index].image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              />
+
+              <motion.img
+                layoutId={`img-${index}`}
+                src={projects[index].image}
+                alt={projects[index].title}
+                className="relative z-10 w-full h-full object-contain p-6 sm:p-10 drop-shadow-[0_15px_35px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:scale-[1.02]"
+              />
+
+              <div className="absolute top-5 left-5 z-20">
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 backdrop-blur-md rounded-full border border-white/10">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                  <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">
+                    Project {index + 1}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <p className="text-gray-700 dark:text-zinc-300 text-sm sm:text-base leading-tight">
-              {projects[index].minDescription || projects[index].description}
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              {projects[index].tags.map((t, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 text-xs bg-black dark:bg-zinc-100 text-white dark:text-black rounded-full"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-
-            {/* Tugmalar bo'limi - Mobileda korinishi uchun gap-3 va mt-1 saqlandi */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-2">
-              {projects[index].github && (
-                <a
-                  href={projects[index].github}
-                  target="_blank"
-                  className="flex-1 border border-black dark:border-zinc-700 rounded-xl py-2 text-center flex justify-center items-center hover:bg-black dark:hover:bg-zinc-100 hover:text-white dark:hover:text-black dark:text-zinc-200 transition text-sm font-semibold"
-                >
-                  GitHub 🔗
-                </a>
-              )}
-              {projects[index].demo && (
-                <a
-                  href={projects[index].demo}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 "
-                >
-                  <ShimmerButton className="w-full h-full flex items-center justify-center gap-2 text-sm">
+            {/* CONTENT SECTION: Tightly integrated */}
+            <div className="p-7 sm:p-9 flex flex-col gap-5 relative bg-zinc-50/50 dark:bg-transparent">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-end">
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic leading-none">
                     {projects[index].title}
-                    <span className="transition-transform group-hover:translate-x-1">
-                      →
-                    </span>
-                  </ShimmerButton>
-                </a>
-              )}
-            </div>
+                  </h2>
+                  <span className="text-[10px] font-black text-gray-400 dark:text-zinc-500 bg-gray-100 dark:bg-zinc-800/80 px-2.5 py-1 rounded-md uppercase tracking-[0.15em]">
+                    {projects[index].startYear}
+                  </span>
+                </div>
+                <div className="h-0.5 w-12 bg-blue-500/50 rounded-full" />
+              </div>
 
-            {/* BorderBeam doim oxirida turadi */}
-            <BorderBeam
-              size={200}
-              duration={10}
-              className="opacity-40 dark:opacity-100"
-            />
+              <p className="text-gray-500 dark:text-zinc-400 text-sm leading-relaxed font-medium">
+                {projects[index].minDescription || projects[index].description}
+              </p>
+
+              <div className="flex flex-wrap gap-1.5">
+                {projects[index].tags.map((t, i) => (
+                  <span
+                    key={i}
+                    className="text-[9px] font-bold text-gray-400 dark:text-zinc-600 border border-gray-100 dark:border-zinc-800/50 px-2.5 py-0.5 rounded-md uppercase tracking-wider"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+
+              {/* ACTIONS: Compact Grid */}
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                {projects[index].demo && (
+                  <a href={projects[index].demo} target="_blank" rel="noreferrer">
+                    <ShimmerButton className="w-full py-3.5 flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                      Live Preview →
+                    </ShimmerButton>
+                  </a>
+                )}
+                {projects[index].github && (
+                  <a
+                    href={projects[index].github}
+                    target="_blank"
+                    className="px-4 py-3.5 bg-gray-100 dark:bg-zinc-800/40 text-gray-900 dark:text-white rounded-2xl text-center text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all duration-300 border border-gray-200 dark:border-zinc-800/20"
+                  >
+                    Source 🔗
+                  </a>
+                )}
+              </div>
+
+              <BorderBeam
+                size={300}
+                duration={12}
+                className="opacity-10 dark:opacity-30"
+              />
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>

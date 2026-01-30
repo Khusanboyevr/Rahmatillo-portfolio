@@ -27,6 +27,7 @@ i18n
                         description_accent2: "o'zgartirishim",
                         description_part3: " mumkin.",
                         cta_projects: "LOYIHALAR",
+                        cta_resume: "RESYUME",
                         cta_about: "Haqimda bilish",
                         projects_count: "Kichik qadamlar",
                         footer: "barcha huquqlar himoyalangan"
@@ -75,7 +76,7 @@ i18n
                         sms: "SMS yuborish",
                         form: {
                             name: "Ismingiz",
-                            email: "Email",
+                            telegram: "Telegram akkountingiz",
                             message: "Xabaringizni shu yerga yozing...",
                             submit: "Xabarni yuborish",
                             success: "Xabaringiz yuborildi! Tez orada javob beraman.",
@@ -104,6 +105,7 @@ i18n
                         description_accent2: "изменить",
                         description_part3: " всё.",
                         cta_projects: "ПРОЕКТЫ",
+                        cta_resume: "РЕЗЮМЕ",
                         cta_about: "Обо мне",
                         projects_count: "Маленькие шаги",
                         footer: "все права защищены"
@@ -152,7 +154,7 @@ i18n
                         sms: "Отправить SMS",
                         form: {
                             name: "Ваше имя",
-                            email: "Email",
+                            telegram: "Ваш Telegram",
                             message: "Напишите ваше сообщение здесь...",
                             submit: "Отправить сообщение",
                             success: "Ваше сообщение отправлено! Скоро отвечу.",
@@ -181,6 +183,7 @@ i18n
                         description_accent2: "değiştirebilirim",
                         description_part3: ".",
                         cta_projects: "PROJELER",
+                        cta_resume: "ÖZGEÇMİŞ",
                         cta_about: "Hakkımda",
                         projects_count: "Küçük adımlar",
                         footer: "tüm hakları saklıdır"
@@ -229,7 +232,7 @@ i18n
                         sms: "SMS gönder",
                         form: {
                             name: "Adınız",
-                            email: "E-posta",
+                            telegram: "Telegram hesabınız",
                             message: "Mesajınızı buraya yazın...",
                             submit: "Mesajı gönder",
                             success: "Mesajınız gönderildi! Yakında dönüş yapacağım.",
@@ -258,6 +261,7 @@ i18n
                         description_accent2: "change",
                         description_part3: " everything with the right question and a few lines of code.",
                         cta_projects: "PROJECTS",
+                        cta_resume: "RESUME",
                         cta_about: "About Me",
                         projects_count: "Small steps",
                         footer: "all rights reserved"
@@ -306,7 +310,7 @@ i18n
                         sms: "Send SMS",
                         form: {
                             name: "Your Name",
-                            email: "Email",
+                            telegram: "Telegram account",
                             message: "Write your message here...",
                             submit: "Send Message",
                             success: "Your message has been sent! I will respond soon.",

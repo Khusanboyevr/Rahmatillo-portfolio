@@ -8,6 +8,7 @@ import Header from "./components/Header.jsx";
 import Contact from "./components/Contact.jsx";
 import About from "./components/About.jsx";
 import Admin from "./components/Admin.jsx";
+import Resume from "./components/Resume.jsx";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import bodyImg from "./assets/body2.svg";
 
@@ -38,7 +39,25 @@ export default function App() {
           transition-colors 
           duration-500
         "
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px'
+        }}
       >
+        {/* Dark mode grid overlay */}
+        <div
+          className="absolute inset-0 hidden dark:block"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px'
+          }}
+        ></div>
         <div className="absolute inset-0 bg-[url('/src/assets/body.svg')] opacity-[0.07] dark:opacity-[0.12] dark:invert bg-repeat bg-[length:200px_auto]"></div>
       </div>
 
@@ -52,6 +71,7 @@ export default function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/about" element={<About />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/resume" element={<Resume />} />
       </Routes>
     </BrowserRouter>
   );

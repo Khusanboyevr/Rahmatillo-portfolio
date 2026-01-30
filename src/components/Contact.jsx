@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   FaTelegram,
   FaInstagram,
@@ -8,12 +9,34 @@ import {
   FaSms,
   FaRocket,
 } from "react-icons/fa";
-import { Globe } from "@/components/ui/globe";
+import { WarpBackground } from "@/components/ui/warp-background";
 import { useTranslation } from "react-i18next";
+import { db } from "../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useEffect } from "react";
 
 export default function ContactCompact() {
   const { t } = useTranslation();
   const [success, setSuccess] = useState(false);
+  const [tgConfig, setTgConfig] = useState({
+    botToken: "7857475586:AAEA1yRlY1QXtaqnbD6eHUGCgPhBjf0naBI",
+    chatId: "6112428725"
+  });
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const docRef = doc(db, "settings", "telegram");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setTgConfig(docSnap.data());
+        }
+      } catch (err) {
+        console.error("Config fetch error:", err);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   const contacts = [
     {
@@ -47,13 +70,12 @@ export default function ContactCompact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const name = e.target.name.value;
-    const email = e.target.email.value;
+    const telegram = e.target.telegram.value;
     const message = e.target.message.value;
 
-    const botToken = "7449520976:AAHe_Ait9iP4Uj6WOfFOfNlYj73_BvD6X8o";
-    const chatId = "6571597816";
+    const { botToken, chatId } = tgConfig;
 
-    const text = `🚀 *Yangi xabar!*\n\n👤 *Ism:* ${name}\n📧 *Email:* ${email}\n📝 *Xabar:* ${message}`;
+    const text = `🚀 *Yangi xabar!*\n\n👤 *Ism:* ${name}\n📱 *Telegram:* ${telegram}\n📝 *Xabar:* ${message}`;
 
     const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(
       text
@@ -73,9 +95,9 @@ export default function ContactCompact() {
 
   return (
     <main className="relative min-h-screen bg-transparent transition-colors duration-500 flex flex-col items-center px-4 pt-24 pb-8 gap-8 overflow-x-hidden">
-      {/* Globe Background */}
-      <div className="absolute top-0 left-0 w-full h-full -z-0 opacity-80 dark:opacity-40 pointer-events-none">
-        <Globe />
+      {/* Warp Background */}
+      <div className="absolute top-0 left-0 w-full h-full -z-0">
+        <WarpBackground />
       </div>
 
       <div className="relative w-full max-w-md z-10">
@@ -83,7 +105,7 @@ export default function ContactCompact() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight">
             {t("contact.title")}
           </h1>
-          {status === "success" && (
+          {success && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -91,15 +113,6 @@ export default function ContactCompact() {
             >
               <FaRocket className="text-lg animate-bounce" />
               <span>{t("contact.form.success")}</span>
-            </motion.div>
-          )}
-          {status === "error" && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-red-600 dark:text-red-400 font-bold text-center flex items-center gap-2 justify-center mt-2"
-            >
-              <span>{t("contact.form.error")}</span>
             </motion.div>
           )}
           <p className="mt-2 text-gray-600 dark:text-zinc-400 text-sm sm:text-base">
@@ -146,9 +159,9 @@ export default function ContactCompact() {
             className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-gray-300 dark:border-zinc-800 w-full px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 transition-all"
           />
           <input
-            type="email"
-            name="email"
-            placeholder={t("contact.form.email")}
+            type="text"
+            name="telegram"
+            placeholder={t("contact.form.telegram")}
             required
             className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-gray-300 dark:border-zinc-800 w-full px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 transition-all"
           />
