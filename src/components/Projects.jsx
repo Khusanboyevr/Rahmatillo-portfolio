@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import GlassCards from "./projects/GlassCards";
 import MasonryGrid from "./projects/MasonryGrid";
 import { db } from "../lib/firebase";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
@@ -13,10 +12,6 @@ import tojikistonImg from "../assets/projects/tojikiston.png";
 
 export default function Projects() {
   const { t } = useTranslation();
-  const tabs = [
-    { id: "glass", label: t("projects.tabs.glass") },
-    { id: "masonry", label: t("projects.tabs.masonry") },
-  ];
 
   const SAMPLE = [
     {
@@ -98,7 +93,6 @@ export default function Projects() {
     }
   ];
 
-  const [active, setActive] = useState("glass");
   const [projectsList, setProjectsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -139,20 +133,6 @@ export default function Projects() {
             </p>
           </div>
 
-          <div className="flex p-1 bg-gray-100 dark:bg-zinc-900/50 backdrop-blur-md rounded-2xl w-fit border border-gray-200 dark:border-zinc-800 mt-6 sm:mt-0">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActive(t.id)}
-                className={`px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-300 ${active === t.id
-                  ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md"
-                  : "text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-zinc-200"
-                  }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
         </header>
 
         <section className="relative">
@@ -180,18 +160,9 @@ export default function Projects() {
               </motion.p>
             </div>
           ) : (
-            <>
-              {active === "glass" && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <GlassCards projects={projectsList} />
-                </div>
-              )}
-              {active === "masonry" && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <MasonryGrid projects={projectsList} />
-                </div>
-              )}
-            </>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <MasonryGrid projects={projectsList} />
+            </div>
           )}
         </section>
       </div>
