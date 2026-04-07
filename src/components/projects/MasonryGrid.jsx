@@ -38,13 +38,13 @@ export default function ProjectsShowcase({ projects }) {
           )}
 
           {/* Content */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-5">
             <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight">
               {p.title}
             </h2>
 
             <p className="text-gray-600 dark:text-zinc-400 text-sm leading-relaxed line-clamp-3 min-h-[60px]">
-              {p.description}
+              {p.description || p.minDescription || "Loyiha haqida batafsil ma'lumot yaqin orada qo'shiladi."}
             </p>
 
             {/* Tags */}

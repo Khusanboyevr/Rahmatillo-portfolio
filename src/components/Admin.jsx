@@ -95,10 +95,12 @@ export default function Admin() {
 
     const fetchTelegramConfig = async () => {
         try {
+            console.log("Fetching Telegram config...");
             const docRef = doc(db, "settings", "telegram");
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 setTelegramConfig(docSnap.data());
+                console.log("Telegram config loaded.");
             }
         } catch (err) {
             console.error("Config fetch error:", err);
@@ -107,10 +109,14 @@ export default function Admin() {
 
     const fetchProjects = async () => {
         try {
+            console.log("Fetching projects for Admin list...");
             const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
             const querySnapshot = await getDocs(q);
-            setProjects(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const fetched = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setProjects(fetched);
+            console.log(`Admin list: ${fetched.length} projects loaded.`);
         } catch (err) {
+            console.error("Admin Projects fetch error:", err);
             showNotification(err.message, "error");
         }
     };
@@ -131,23 +137,21 @@ export default function Admin() {
         try {
             let imageUrl = formData.image;
 
-            // Only process image if NOT editing (new project)
-            if (!editingId) {
-                if (imageFile) {
-                    const storageRef = ref(storage, `projects/${Date.now()}_${imageFile.name}`);
-                    const snapshot = await uploadBytes(storageRef, imageFile);
-                    imageUrl = await getDownloadURL(snapshot.ref);
-                }
+            // Process new file upload if exists
+            if (imageFile) {
+                const storageRef = ref(storage, `projects/${Date.now()}_${imageFile.name}`);
+                const snapshot = await uploadBytes(storageRef, imageFile);
+                imageUrl = await getDownloadURL(snapshot.ref);
+            } 
+            // Only generate screenshot if NO image and NO folder demo
+            else if (!imageUrl && formData.demo) {
+                imageUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(formData.demo)}?w=1200&h=800`;
+            }
 
-                if (!imageUrl && formData.demo) {
-                    imageUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(formData.demo)}?w=1200&h=800`;
-                }
-
-                if (!imageUrl) {
-                    showNotification("Iltimos, rasm yuklang yoki URL kiriting", "error");
-                    setUploading(false);
-                    return;
-                }
+            if (!imageUrl) {
+                showNotification("Iltimos, rasm yuklang yoki URL kiriting", "error");
+                setUploading(false);
+                return;
             }
 
             const projectData = {
@@ -245,12 +249,69 @@ export default function Admin() {
             // Normally we'd import this from Projects.jsx, but since it's inside the component, 
             // we'll define the core data here for seeding.
             const initialSamples = [
-                { title: "Ansor Med", minDescription: "Tibbiyot markazi platformasi", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/ansor.git", demo: "https://ansormedn.netlify.app/", image: "https://ansormedn.netlify.app/og-image.png" },
-                { title: "Akademnashr", minDescription: "Nashriyot uyi sayti", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/akademnashr.git", demo: "https://akademnashrmy.netlify.app", image: "https://akademnashrmy.netlify.app/og-image.png" },
-                { title: "Shortening API", minDescription: "URL qisqartiruvchi servis", tags: ["Node.js", "React"], github: "https://github.com/Khusanboyevr/shortening-api.git", demo: "https://rahmatillo-shortterining.netlify.app", image: "https://rahmatillo-shortterining.netlify.app/og-image.png" },
-                { title: "Tojikiston", minDescription: "Tojikiston turizm platformasi", tags: ["React", "TailwindCSS"], github: "https://github.com/Khusanboyevr/tojikiston.git", demo: "https://tojikiston.netlify.app", image: "https://tojikiston.netlify.app/og-image.png" },
-                { title: "Trading", minDescription: "Trading platformasi dashboardi", tags: ["React", "Chart.js"], github: "https://github.com/Khusanboyevr/trading.git", demo: "https://tradinng.netlify.app/", image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800" },
-                { title: "Worldty", minDescription: "Davlatlar haqida ma'lumot platformasi", tags: ["React", "TailwindCSS", "Rest API"], github: "https://github.com/Khusanboyevr/countries-about.git", demo: "https://worldty.netlify.app/", image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fworldty.netlify.app%2F?w=1200&h=800" }
+                { 
+                    title: "Ansor Med", 
+                    minDescription: "Ansor Med — tibbiyot markazi uchun maxsus ishlab chiqilgan premium platforma.", 
+                    description: "Ansor Med tibbiyot markazi uchun zamonaviy va qulay platforma. Foydalanuvchilar shifokorlar ko'rigiga yozilishi va xizmatlar haqida to'liq ma'lumot olishlari mumkin.",
+                    tags: ["React", "TailwindCSS", "Framer Motion"], 
+                    github: "https://github.com/Khusanboyevr/ansor.git", 
+                    demo: "https://ansormedn.netlify.app/", 
+                    image: "https://ansormedn.netlify.app/og-image.png" 
+                },
+                { 
+                    title: "Akademnashr", 
+                    minDescription: "Akademnashr — nashriyot uyi uchun yaratilgan zamonaviy web-sayt.", 
+                    description: "Akademnashr nashriyoti uchun ishlab chiqilgan platforma. Kitoblar katalogi, yangiliklar va nashriyot faoliyati haqida batafsil ma'lumot.",
+                    tags: ["React", "TailwindCSS"], 
+                    github: "https://github.com/Khusanboyevr/akademnashr.git", 
+                    demo: "https://akademnashrmy.netlify.app", 
+                    image: "https://akademnashrmy.netlify.app/og-image.png" 
+                },
+                { 
+                    title: "Shortening API", 
+                    minDescription: "URL Shortener — uzun havolalarni qisqartirish yechimi.", 
+                    description: "Uzun havolalarni soniyalar ichida qisqartiruvchi va statistikani kuzatuvchi servis. API orqali boshqa servislar bilan integratsiya imkoniyati.",
+                    tags: ["React", "Node.js", "Express"], 
+                    github: "https://github.com/Khusanboyevr/shortening-api.git", 
+                    demo: "https://rahmatillo-shortterining.netlify.app", 
+                    image: "https://rahmatillo-shortterining.netlify.app/og-image.png" 
+                },
+                { 
+                    title: "Premium Food", 
+                    minDescription: "Food delivery app — taom yetkazib berish xizmati interfeysi.", 
+                    description: "Restoranlar va mijozlarni bog'lovchi qulay interfeysli taom yetkazib berish ilovasi. Silliq animatsiyalar va foydalanuvchiga qulay dizayn.",
+                    tags: ["React", "TailwindCSS", "Framer Motion"], 
+                    github: "", 
+                    demo: "https://bucolic-gaufre-266faa.netlify.app", 
+                    image: "https://placehold.co/1200x800?text=Premium+Food" 
+                },
+                { 
+                    title: "Tojikiston", 
+                    minDescription: "Tojikiston — tabiat va madaniyat haqida interfaol platforma.", 
+                    description: "Tojikistonning turistik salohiyati, tog'lari, ko'llari va boy tarixi haqida ma'lumot beruvchi zamonaviy web-sayt. Foydalanuvchilar uchun qulay navigatsiya va vizual boy dizayn.",
+                    tags: ["React", "TailwindCSS"], 
+                    github: "https://github.com/Khusanboyevr/tojikiston.git", 
+                    demo: "https://tojikiston.netlify.app", 
+                    image: "https://tojikiston.netlify.app/og-image.png" 
+                },
+                { 
+                    title: "Trading", 
+                    minDescription: "Zamonaviy trading platformasi dashboardi", 
+                    description: "Candlestick grafiklar, texnik tahlil indikatorlari va portfel boshqaruvi bilan jihozlangan professional trading interfeysi. Dark mode va qulay UX dizayn.",
+                    tags: ["React", "Chart.js", "TailwindCSS"], 
+                    github: "https://github.com/Khusanboyevr/trading.git", 
+                    demo: "https://tradinng.netlify.app/", 
+                    image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800" 
+                },
+                { 
+                    title: "Worldty", 
+                    minDescription: "Worldty — Dunyo mamlakatlari haqida ma'lumot platformasi.", 
+                    description: "Bayroqlar, aholi soni, mintaqalar va boshqa ko'plab qiziqarli ma'lumotlar bilan boyitilgan interfaol platforma. Foydalanuvchilar qidiruv va filtrlash orqali mamlakatlar haqida batafsil ma'lumot olishlari mumkin.",
+                    tags: ["React", "TailwindCSS", "Rest API"], 
+                    github: "https://github.com/Khusanboyevr/countries-about.git", 
+                    demo: "https://worldty.netlify.app/", 
+                    image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fworldty.netlify.app%2F?w=1200&h=800" 
+                }
             ];
 
             for (const proj of initialSamples) {
@@ -427,52 +488,61 @@ export default function Admin() {
                                         </div>
                                     </div>
 
-                                    {!editingId && (
-                                        <div>
-                                            <div className="flex justify-between items-end mb-1">
-                                                <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Loyiha Rasmi</label>
-                                                <button type="button" onClick={generateScreenshot} className="text-[10px] text-blue-500 font-bold hover:underline mb-1">
-                                                    Demosidan olish
-                                                </button>
+                                    <div>
+                                        <div className="flex justify-between items-end mb-1">
+                                            <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Loyiha Rasmi (URL yoki Fayl)</label>
+                                            <button type="button" onClick={generateScreenshot} className="text-[10px] text-blue-500 font-bold hover:underline mb-1">
+                                                Demosidan olish
+                                            </button>
+                                        </div>
+                                        <div className="mt-1 space-y-3">
+                                            {(formData.image || imageFile) && (
+                                                <div className="relative w-full h-48 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 dark:border-zinc-800 shadow-inner group">
+                                                    <img 
+                                                        src={imageFile ? URL.createObjectURL(imageFile) : formData.image} 
+                                                        className="w-full h-full object-cover" 
+                                                        alt="Preview" 
+                                                        onError={(e) => { e.target.src = "https://placehold.co/600x400?text=Rasm+yuklashda+xato"; }}
+                                                    />
+                                                    <button type="button" onClick={() => { setFormData({ ...formData, image: "" }); setImageFile(null); }} className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all">
+                                                        <FaTrash size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <div className="flex-1">
+                                                    <label className="text-[9px] text-gray-400 font-bold mb-1 block">FAYL YUKLASH</label>
+                                                    <input type="file" accept="image/*" onChange={e => { setImageFile(e.target.files[0]); setFormData({...formData, image: ""}); }} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+                                                </div>
+                                                <div className="flex-[1.5]">
+                                                    <label className="text-[9px] text-gray-400 font-bold mb-1 block">YOKI GOOGLE LINK</label>
+                                                    <input placeholder="https://images.unsplash..." value={formData.image} onChange={e => { setFormData({ ...formData, image: e.target.value }); if(e.target.value) setImageFile(null); }} className="w-full p-2.5 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white text-xs outline-none focus:border-blue-500" />
+                                                </div>
                                             </div>
-                                            <div className="mt-1 space-y-3">
-                                                {formData.image && (
-                                                    <div className="relative w-full h-40 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800 shadow-inner group">
-                                                        <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
-                                                        <button type="button" onClick={() => setFormData({ ...formData, image: "" })} className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all">
-                                                            <FaTrash size={12} />
-                                                        </button>
-                                                    </div>
-                                                )}
 
-                                                {/* Presets */}
-                                                <div className="space-y-3 mb-2 p-3 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl border border-gray-100 dark:border-zinc-800">
-                                                    {["Web", "App", "Dashboard", "E-commerce"].map(cat => (
-                                                        <div key={cat} className="space-y-1">
-                                                            <span className="text-[9px] font-black uppercase text-gray-400 ml-1">{cat}</span>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {IMAGE_PRESETS.filter(p => p.category === cat).map(preset => (
-                                                                    <button
-                                                                        key={preset.name}
-                                                                        type="button"
-                                                                        onClick={() => setFormData({ ...formData, image: preset.url })}
-                                                                        className="px-2 py-1 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-700 rounded-lg text-[10px] font-bold dark:text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-all"
-                                                                    >
-                                                                        {preset.name.split(" ")[1]}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
+                                            {/* Presets */}
+                                            <div className="space-y-3 p-3 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl border border-gray-100 dark:border-zinc-800">
+                                                {["Web", "App", "Dashboard", "E-commerce"].map(cat => (
+                                                    <div key={cat} className="space-y-1">
+                                                        <span className="text-[9px] font-black uppercase text-gray-400 ml-1">{cat}</span>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {IMAGE_PRESETS.filter(p => p.category === cat).map(preset => (
+                                                                <button
+                                                                    key={preset.name}
+                                                                    type="button"
+                                                                    onClick={() => { setFormData({ ...formData, image: preset.url }); setImageFile(null); }}
+                                                                    className={`px-2 py-1 border rounded-lg text-[10px] font-bold transition-all ${formData.image === preset.url ? "bg-blue-500 border-blue-500 text-white" : "bg-white dark:bg-zinc-900 border-gray-100 dark:border-zinc-700 dark:text-gray-400 hover:border-blue-500 hover:text-blue-500"}`}
+                                                                >
+                                                                    {preset.name.split(" ")[1]}
+                                                                </button>
+                                                            ))}
                                                         </div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} className="flex-1 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
-                                                    <input placeholder="Yoki URL manzil..." value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} className="flex-[1.5] p-2.5 rounded-xl border-2 border-gray-50 dark:bg-zinc-800 dark:border-zinc-800 dark:text-white text-xs outline-none focus:border-blue-500" />
-                                                </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
 
                                     <div>
                                         <label className="text-[10px] font-bold text-gray-400 ml-1 uppercase">Qisqa Tavsif</label>

@@ -13,106 +13,20 @@ import tojikistonImg from "../assets/projects/tojikiston.png";
 export default function Projects() {
   const { t } = useTranslation();
 
-  const SAMPLE = [
-    {
-      id: 1,
-      title: "Ansor Med",
-      minDescription: "Ansor Med — tibbiyot markazi uchun maxsus ishlab chiqilgan premium platforma. Barcha tibbiy xizmatlar bir joyda.",
-      description: "Ansor Med tibbiyot markazi uchun zamonaviy va qulay platforma. Foydalanuvchilar shifokorlar ko'rigiga yozilishi va xizmatlar haqida to'liq ma'lumot olishlari mumkin.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "TailwindCSS", "Framer Motion"],
-      github: "https://github.com/Khusanboyevr/ansor.git",
-      demo: "https://ansormedn.netlify.app/",
-      image: ansorImg,
-    },
-    {
-      id: 2,
-      title: "Akademnashr",
-      minDescription: "Akademnashr — nashriyot uyi uchun yaratilgan zamonaviy web-sayt. Kitoblar olamiga xush kelibsiz.",
-      description: "Akademnashr nashriyoti uchun ishlab chiqilgan platforma. Kitoblar katalogi, yangiliklar va nashriyot faoliyati haqida batafsil ma'lumot.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "TailwindCSS"],
-      github: "https://github.com/Khusanboyevr/akademnashr.git",
-      demo: "https://akademnashrmy.netlify.app",
-      image: akademImg,
-    },
-    {
-      id: 3,
-      title: "Shortening API",
-      minDescription: "URL Shortener — uzun havolalarni qisqartirish va ularni boshqarish uchun texnologik yechim.",
-      description: "Uzun havolalarni soniyalar ichida qisqartiruvchi va statistikani kuzatuvchi servis. API orqali boshqa servislar bilan integratsiya imkoniyati.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "Node.js", "Express"],
-      github: "https://github.com/Khusanboyevr/shortening-api.git",
-      demo: "https://rahmatillo-shortterining.netlify.app",
-      image: shortenerImg,
-    },
-    {
-      id: 4,
-      title: "Premium Food",
-      minDescription: "Food delivery app — taom yetkazib berish xizmati uchun zamonaviy va interaktiv interfeys.",
-      description: "Restoranlar va mijozlarni bog'lovchi qulay interfeysli taom yetkazib berish ilovasi. Silliq animatsiyalar va foydalanuvchiga qulay dizayn.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "TailwindCSS", "Framer Motion"],
-      github: "",
-      demo: "https://bucolic-gaufre-266faa.netlify.app",
-      image: foodImg,
-    },
-    {
-      id: 5,
-      title: "Tojikiston",
-      minDescription: "Tojikiston — Tojikistonning go'zal tabiati va madaniyati haqida ma'lumot beruvchi interfaol platforma.",
-      description: "Tojikistonning turistik salohiyati, tog'lari, ko'llari va boy tarixi haqida ma'lumot beruvchi zamonaviy web-sayt. Foydalanuvchilar uchun qulay navigatsiya va vizual boy dizayn.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "TailwindCSS"],
-      github: "https://github.com/Khusanboyevr/tojikiston.git",
-      demo: "https://tojikiston.netlify.app",
-      image: tojikistonImg,
-    },
-    {
-      id: 6,
-      title: "Trading",
-      minDescription: "Zamonaviy trading platformasi dashboardi",
-      description: "Candlestick grafiklar, texnik tahlil indikatorlari va portfel boshqaruvi bilan jihozlangan professional trading interfeysi. Dark mode va qulay UX dizayn.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "Chart.js", "TailwindCSS"],
-      github: "https://github.com/Khusanboyevr/trading.git",
-      demo: "https://tradinng.netlify.app/",
-      image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Ftradinng.netlify.app%2F?w=1200&h=800",
-    },
-    {
-      id: 7,
-      title: "Worldty",
-      minDescription: "Worldty — Dunyo mamlakatlari haqida to'liq ma'lumot beruvchi interfaol platforma.",
-      description: "Bayroqlar, aholi soni, mintaqalar va boshqa ko'plab qiziqarli ma'lumotlar bilan boyitilgan interfaol platforma. Foydalanuvchilar qidiruv va filtrlash orqali mamlakatlar haqida batafsil ma'lumot olishlari mumkin.",
-      startYear: "2025", endYear: "2025",
-      tags: ["React", "TailwindCSS", "Rest API"],
-      github: "https://github.com/Khusanboyevr/countries-about.git",
-      demo: "https://worldty.netlify.app/",
-      image: "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fworldty.netlify.app%2F?w=1200&h=800",
-    }
-  ];
-
   const [projectsList, setProjectsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getProjects = async () => {
       try {
+        console.log("Fetching projects from Firebase...");
         const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         const fetched = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (fetched.length > 0) {
-          // Merge fetched projects with SAMPLE projects, avoiding duplicates by title
-          const sampleFiltered = SAMPLE.filter(s => !fetched.some(f => f.title === s.title));
-          setProjectsList([...fetched, ...sampleFiltered]);
-        } else {
-          setProjectsList(SAMPLE);
-        }
+        setProjectsList(fetched);
       } catch (err) {
-        console.error("Fetch error:", err);
-        setProjectsList(SAMPLE);
+        console.error("Firestore Fetch error:", err);
+        setProjectsList([]);
       } finally {
         setLoading(false);
       }
@@ -121,7 +35,7 @@ export default function Projects() {
   }, []);
 
   return (
-    <main className="min-h-screen pt-20 bg-transparent transition-colors duration-500  px-4 sm:px-6">
+    <main className="min-h-screen pt-32 bg-transparent transition-colors duration-500  px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between ">
           <div className="space-y-2">
