@@ -82,11 +82,17 @@ export default function Admin() {
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
-            setUser(u);
-            if (u) {
-                fetchProjects();
-                fetchTelegramConfig();
-                setNewEmail(u.email);
+            if (u && u.uid !== "mTgkbsQEDPdy7BK52hzmc0fNnRi2") {
+                signOut(auth);
+                setUser(null);
+                showNotification("Siz admin emassiz! Ruxsat etilmagan UID.", "error");
+            } else {
+                setUser(u);
+                if (u) {
+                    fetchProjects();
+                    fetchTelegramConfig();
+                    setNewEmail(u.email);
+                }
             }
             setLoading(false);
         });
@@ -124,10 +130,23 @@ export default function Admin() {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            let loginEmail = email.trim().toLowerCase();
+            const loginPassword = password.trim();
+
+            // Agar faqat login kiritilgan bo'lsa, @gmail.com qo'shib qo'yamiz
+            if (loginEmail && !loginEmail.includes("@")) {
+                loginEmail = loginEmail + "@gmail.com";
+            }
+            
+            console.log("Attempting login with:", loginEmail);
+            await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
             showNotification("Xush kelibsiz!");
         } catch (err) {
-            showNotification("Login xatosi: " + err.message, "error");
+            console.error("Firebase login error:", err);
+            let msg = err.message;
+            if (err.code === "auth/invalid-credential") msg = "Login yoki parol noto'g'ri";
+            if (err.code === "auth/user-not-found") msg = "Foydalanuvchi topilmadi";
+            showNotification("Xato: " + msg, "error");
         }
     };
 
@@ -238,6 +257,19 @@ export default function Admin() {
             setNewPassword("");
         } catch (err) {
             showNotification("Xato: " + err.message, "error");
+        }
+    };
+
+    const handleUpdateTelegram = async (e) => {
+        e.preventDefault();
+        setUploading(true);
+        try {
+            await setDoc(doc(db, "settings", "telegram"), telegramConfig);
+            showNotification("Telegram sozlamalari saqlandi!");
+        } catch (err) {
+            showNotification("Xato: " + err.message, "error");
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -376,7 +408,7 @@ export default function Admin() {
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <input
-                            type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
+                            type="text" placeholder="Login yoki Email" value={email} onChange={e => setEmail(e.target.value)}
                             className="w-full p-4 rounded-xl border-2 border-gray-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white outline-none focus:border-blue-500 transition-all"
                         />
                         <div className="relative">
